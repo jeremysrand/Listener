@@ -74,6 +74,7 @@
 		9D5155C326A1ED510075EBC7 /* tail.mk */ = {isa = PBXFileReference; lastKnownFileType = text; path = tail.mk; sourceTree = "<group>"; };
 		9D5155C626A1ED510075EBC7 /* Listener.xcscheme */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = Listener.xcscheme; path = ../../Listener.xcodeproj/xcshareddata/xcschemes/Listener.xcscheme; sourceTree = "<group>"; };
 		9D5155DD26A1EDA60075EBC7 /* system601_net.2mg */ = {isa = PBXFileReference; lastKnownFileType = file; path = system601_net.2mg; sourceTree = "<group>"; };
+		9D51562026A1F0C60075EBC7 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,6 +91,7 @@
 		9D51559226A1ED510075EBC7 = {
 			isa = PBXGroup;
 			children = (
+				9D51562026A1F0C60075EBC7 /* LICENSE */,
 				9D5155A426A1ED510075EBC7 /* Listener */,
 				9D51559A26A1ED510075EBC7 /* Products */,
 			);
