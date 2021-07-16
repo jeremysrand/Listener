@@ -73,6 +73,7 @@
 		9D5155C126A1ED510075EBC7 /* tar */ = {isa = PBXFileReference; lastKnownFileType = file; path = tar; sourceTree = "<group>"; };
 		9D5155C326A1ED510075EBC7 /* tail.mk */ = {isa = PBXFileReference; lastKnownFileType = text; path = tail.mk; sourceTree = "<group>"; };
 		9D5155C626A1ED510075EBC7 /* Listener.xcscheme */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = Listener.xcscheme; path = ../../Listener.xcodeproj/xcshareddata/xcschemes/Listener.xcscheme; sourceTree = "<group>"; };
+		9D5155DD26A1EDA60075EBC7 /* system601_net.2mg */ = {isa = PBXFileReference; lastKnownFileType = file; path = system601_net.2mg; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +131,7 @@
 				9D5155B926A1ED510075EBC7 /* orca-cc */,
 				9D5155BB26A1ED510075EBC7 /* orca-rez */,
 				9D5155BD26A1ED510075EBC7 /* system601.2mg */,
+				9D5155DD26A1EDA60075EBC7 /* system601_net.2mg */,
 				9D5155BF26A1ED510075EBC7 /* empty.2mg */,
 				9D5155C126A1ED510075EBC7 /* tar */,
 				9D5155C326A1ED510075EBC7 /* tail.mk */,

@@ -34,7 +34,7 @@ TARGETTYPE=nda
 # here:
 #
 # EMULATOR=gsplus
-# EMULATOR=mame
+EMULATOR=mame
 # EMULATOR=gsport
 
 # By default, the build provides a single boot environment to test with.
@@ -42,7 +42,7 @@ TARGETTYPE=nda
 # variable to change what boot disk you want to use when you launch the
 # emulator.  The disk image you specify must be found in the make directory:
 #
-# BOOTIMAGE=system601.2mg
+BOOTIMAGE=system601_net.2mg
 
 # Add any other directories where you are putting C or assembly source
 # files to this list:
@@ -149,7 +149,7 @@ COPYBOOTDIRS=
 # By default, the build uses these arguments with mame:
 # 	apple2gs -skip_gameinfo -mouse -window -resolution 1408x1056 -ramsize 4M -sl7 cffa202
 # If you would like to use different arguments, specify that here.
-# MAMEARGS=apple2gs -skip_gameinfo -speed 2 -mouse -window -resolution 1408x1056 -ramsize 4M -sl7 cffa202
+MAMEARGS=apple2gs -skip_gameinfo -speed 3 -mouse -window -resolution 1408x1056 -ramsize 4M -sl3 uthernet -sl7 cffa2
 
 # For a desktop application, it can operate in 640x200 or 320x200
 # resolution.  This setting is used to define which horizontal
