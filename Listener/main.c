@@ -8,7 +8,7 @@
  */
 
 
-#pragma nda NDAOpen NDAClose NDAAction NDAInit -1 0x03FF "  Listener\\H**"
+#pragma nda NDAOpen NDAClose NDAAction NDAInit 5 0x03FF "  Listener\\H**"
 
 
 #include <orca.h>
@@ -21,13 +21,20 @@
 #include <MiscTool.h>
 #include <Memory.h>
 #include <Loader.h>
+#include <tcpip.h>
+
+#include <string.h>
 
 #include "main.h"
 
 
-static BOOLEAN ndaActive;
-static GrafPortPtr winPtr;
+static BOOLEAN ndaActive = FALSE;
+static GrafPortPtr winPtr = NULL;
 static unsigned int userId;
+
+static char line1[50];
+static char line2[50];
+static char line3[50];
 
 
 void NDAClose(void)
@@ -47,7 +54,9 @@ void NDAInit(int code)
     /* When code is 1, this is tool startup, otherwise tool
      * shutdown.
      */
-    
+    strcpy(line1, "Hello, world!");
+    strcpy(line2, "Hello, world!");
+    strcpy(line3, "Hello, world!");
     if (code) {
         ndaActive = FALSE;
         userId = MMStartUp();
@@ -61,9 +70,21 @@ void NDAInit(int code)
 #pragma databank 1
 void DrawContents(void)
 {
+    Rect frame;
+    GetPortRect(&frame);
+    frame.v2 -= frame.v1;
+    frame.h2 -= frame.h1;
+    frame.h1 = 0;
+    frame.v1 = 0;
+    EraseRect(&frame);
+    
     PenNormal();
     MoveTo(7,10);
-    DrawCString("Hello, world!");
+    DrawCString(line1);
+    MoveTo(7,20);
+    DrawCString(line2);
+    MoveTo(7,30);
+    DrawCString(line3);
 }
 #pragma databank 0
 
@@ -115,6 +136,19 @@ GrafPortPtr NDAOpen(void)
 
 void HandleRun(void)
 {
+    static BOOLEAN keySent = FALSE;
+    
+    if (winPtr == NULL)
+        return;
+    
+    if (winPtr == FrontWindow())
+        return;
+    
+    if (keySent)
+        return;
+    
+    PostEvent(keyDownEvt, 0x00C0004A);
+    keySent = TRUE;
 }
 
 
@@ -123,8 +157,27 @@ void HandleControl(EventRecord *event)
 }
 
 
+void InvalidateWindow(void)
+{
+    Rect frame;
+    SetPort(winPtr);
+    GetPortRect(&frame);
+    frame.v2 -= frame.v1;
+    frame.h2 -= frame.h1;
+    frame.h1 = 0;
+    frame.v1 = 0;
+    InvalRect(&frame);
+}
+
+
 void HandleKey(EventRecord *event)
 {
+    if (winPtr != NULL) {
+        sprintf(line1, "what = $%X", event->what);
+        sprintf(line2, "message = $%lX", event->message);
+        sprintf(line3, "modifiers = $%X", event->modifiers);
+        InvalidateWindow();
+    }
 }
 
 

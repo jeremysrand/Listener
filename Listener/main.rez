@@ -39,7 +39,7 @@ resource rWindParam1 (windowRes) {
     {0,0},                      /* page ver horiz */
     0,                          /* winfoRefcon */
     0,                          /* wInfoHeight */
-    {50,50,62,200},             /* wposition */
+    {50,10,86,310},             /* wposition */
     infront,                    /* wPlane */
     nil,                        /* wStorage */
     $0800                       /* wInVerb */
