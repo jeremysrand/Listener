@@ -47,7 +47,9 @@ typedef enum tListenState {
     LISTEN_STATE_NETWORK_UNCONNECTED,
     LISTEN_STATE_NETWORK_CONNECTED,
     LISTEN_STATE_AWAITING_CONNECTION,
+    LISTEN_STATE_AWAITING_ESTABLISH,
     LISTEN_STATE_AWAITING_MSG_HEADER,
+    LISTEN_STATE_AWAITING_TEXT,
     
     LISTEN_STATE_ERROR,
     
@@ -102,7 +104,9 @@ void handleStartState(void);
 void handleNetworkUnconnectedState(void);
 void handleNetworkConnectedState(void);
 void handleAwaitingConnectionState(void);
+void handleAwaitingEstablishState(void);
 void handleAwaitingMsgHeaderState(void);
+void handleAwaitingTextState(void);
 void handleErrorState(void);
 
 
@@ -115,7 +119,9 @@ static tStateHandler stateHandlers[NUM_LISTEN_STATES] = {
     handleNetworkUnconnectedState,
     handleNetworkConnectedState,
     handleAwaitingConnectionState,
+    handleAwaitingEstablishState,
     handleAwaitingMsgHeaderState,
+    handleAwaitingTextState,
     
     handleErrorState,
 };
@@ -124,7 +130,9 @@ static char * stateMessages[NUM_LISTEN_STATES] = {
     "Connecting to network",
     "Creating listen socket",
     "Waiting for connection",
+    "Establishing connection",
     "Connected to device",
+    "Receiving text",
     
     ""
 };
@@ -333,6 +341,7 @@ void handleStartState(void)
 
 void handleNetworkUnconnectedState(void)
 {
+    TCPIPPoll();
     TCPIPConnect(NULL);
     if ((!toolerror()) &&
         (TCPIPGetConnectStatus())) {
@@ -348,9 +357,16 @@ void handleNetworkConnectedState(void)
 {
     Word error;
     
-    globals->listenIpid = TCPIPLogin(userId, 0, LISTEN_PORT, 0, 64);
+    TCPIPPoll();
+    globals->listenIpid = TCPIPLogin(userId, 0, 0, 0, 64);
     if (toolerror()) {
         enterErrorState("Unable to create socket", toolerror());
+        return;
+    }
+    
+    TCPIPSetSourcePort(globals->listenIpid, LISTEN_PORT);
+    if (toolerror()) {
+        enterErrorState("Unable to set port number", toolerror());
         return;
     }
     
@@ -367,12 +383,12 @@ void handleNetworkConnectedState(void)
 
 void handleAwaitingConnectionState(void)
 {
+    TCPIPPoll();
     globals->connIpid = TCPIPAcceptTCP(globals->listenIpid, 0);
     switch (toolerror()) {
         case terrOK:
             globals->hasConnIpid = TRUE;
-            newState(LISTEN_STATE_AWAITING_MSG_HEADER);
-            globals->position = 0;
+            newState(LISTEN_STATE_AWAITING_ESTABLISH);
             break;
             
         case terrNOINCOMING:
@@ -385,9 +401,54 @@ void handleAwaitingConnectionState(void)
 }
 
 
+void handleAwaitingEstablishState(void)
+{
+    static srBuff srBuffer;
+    
+    TCPIPPoll();
+    
+    TCPIPStatusTCP(globals->connIpid, &srBuffer);
+    if (toolerror()) {
+        enterErrorState("Unable to get connection state", toolerror());
+        return;
+    }
+    switch (srBuffer.srState) {
+        case TCPSSYNSENT:
+        case TCPSSYNRCVD:
+            break;
+            
+        case TCPSESTABLISHED:
+            newState(LISTEN_STATE_AWAITING_MSG_HEADER);
+            globals->position = 0;
+            break;
+            
+        default:
+            enterErrorState("Unexpected TCP state", srBuffer.srState);
+            break;
+    }
+}
+
+
 void handleAwaitingMsgHeaderState(void)
 {
-    rrBuff readResponseBuf;
+    static srBuff srBuffer;
+    static rrBuff readResponseBuf;
+    tTextList * textTransfer;
+    
+    TCPIPPoll();
+    
+    TCPIPStatusTCP(globals->connIpid, &srBuffer);
+    if (toolerror()) {
+        enterErrorState("Unable to get connection state", toolerror());
+        return;
+    }
+    if (srBuffer.srState != TCPSESTABLISHED) {
+        TCPIPAbortTCP(globals->connIpid);
+        TCPIPLogout(globals->connIpid);
+        globals->hasConnIpid = FALSE;
+        newState(LISTEN_STATE_AWAITING_CONNECTION);
+        return;
+    }
     Word error = TCPIPReadTCP(globals->connIpid, 0,
                               ((uint32_t)(&(globals->messageHeader))) + globals->position,
                               sizeof(globals->messageHeader) - globals->position,
@@ -408,10 +469,20 @@ void handleAwaitingMsgHeaderState(void)
             else
                 globals->line2[0] = '\0';
             InvalidateWindow();
+            globals->position = 0;
             break;
         
         case LISTEN_TEXT_MSG:
-            // TODO - Transition to a new state when getting text
+            textTransfer = malloc(sizeof(tTextListHeader) + globals->messageHeader.messageArg);
+            if (textTransfer == NULL) {
+                enterErrorState("Unable to get memory for text", 0);
+                return;
+            }
+            globals->textTransfer = textTransfer;
+            textTransfer->header.next = NULL;
+            textTransfer->header.size = globals->messageHeader.messageArg;
+            textTransfer->header.position = 0;
+            newState(LISTEN_STATE_AWAITING_TEXT);
             break;
             
         default:
@@ -419,6 +490,54 @@ void handleAwaitingMsgHeaderState(void)
     }
 }
 
+void handleAwaitingTextState(void)
+{
+    static srBuff srBuffer;
+    static rrBuff readResponseBuf;
+    tTextList * textTransfer = globals->textTransfer;
+    
+    TCPIPPoll();
+    
+    TCPIPStatusTCP(globals->connIpid, &srBuffer);
+    if (toolerror()) {
+        enterErrorState("Unable to get connection state", toolerror());
+        return;
+    }
+    if (srBuffer.srState != TCPSESTABLISHED) {
+        TCPIPAbortTCP(globals->connIpid);
+        TCPIPLogout(globals->connIpid);
+        globals->hasConnIpid = FALSE;
+        newState(LISTEN_STATE_AWAITING_CONNECTION);
+        return;
+    }
+    
+    Word error = TCPIPReadTCP(globals->connIpid, 0,
+                             (uint32_t)(&(textTransfer->text[textTransfer->header.position])),
+                              textTransfer->header.size - textTransfer->header.position,
+                              &readResponseBuf);
+    if (error != tcperrOK) {
+        enterErrorState("Unable to read text from connection", error);
+        return;
+    }
+    
+    textTransfer->header.position += readResponseBuf.rrBuffCount;
+    if (textTransfer->header.position < textTransfer->header.size)
+        return;
+    
+    if (globals->textListTail != NULL) {
+        globals->textListTail->header.next = textTransfer;
+    } else {
+        globals->textListHead = textTransfer;
+        strcpy(globals->line3, "    Typing...");
+        InvalidateWindow();
+    }
+    
+    textTransfer->header.position = 0;
+    globals->textListTail = textTransfer;
+    globals->textTransfer = NULL;
+    newState(LISTEN_STATE_AWAITING_MSG_HEADER);
+    globals->position = 0;
+}
 
 void handleErrorState(void)
 {
@@ -428,7 +547,6 @@ void handleErrorState(void)
 
 void runStateMachine(void)
 {
-    TCPIPPoll();
     stateHandlers[globals->state]();
 }
 
