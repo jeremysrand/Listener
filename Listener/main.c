@@ -406,7 +406,7 @@ void handleAwaitingMsgHeaderState(void)
             if (globals->messageHeader.messageArg)
                 strcpy(globals->line2, "  Listening...");
             else
-                strcpy(globals->line2, "");
+                globals->line2[0] = '\0';
             InvalidateWindow();
             break;
         
@@ -442,8 +442,11 @@ void sendKey(void)
     if (textList->header.position < textList->header.size)
         return;
     
-    if (textList == globals->textListTail)
+    if (textList == globals->textListTail) {
         globals->textListTail = NULL;
+        globals->line3[0] = '\0';
+        InvalidateWindow();
+    }
     
     globals->textListHead = textList->header.next;
     free(textList);
