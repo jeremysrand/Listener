@@ -21,31 +21,169 @@
 #include <MiscTool.h>
 #include <Memory.h>
 #include <Loader.h>
+#include <locator.h>
 #include <tcpip.h>
 
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "main.h"
 
 
-static BOOLEAN ndaActive = FALSE;
-static GrafPortPtr winPtr = NULL;
+// Defines
+
+#define LISTEN_PORT 19026
+
+#define LISTEN_STATE_MSG 1
+#define LISTEN_TEXT_MSG 2
+
+#define WINDOW_CHAR_WIDTH 50
+
+// Typedefs
+
+typedef enum tListenState {
+    LISTEN_STATE_START = 0,
+    LISTEN_STATE_NETWORK_UNCONNECTED,
+    LISTEN_STATE_NETWORK_CONNECTED,
+    LISTEN_STATE_AWAITING_CONNECTION,
+    LISTEN_STATE_AWAITING_MSG_HEADER,
+    
+    LISTEN_STATE_ERROR,
+    
+    NUM_LISTEN_STATES
+} tListenState;
+
+typedef struct tMessageHeader {
+    uint16_t messageType;
+    uint16_t messageArg;
+} tMessageHeader;
+
+
+typedef struct tTextList tTextList;
+
+typedef struct tTextListHeader {
+    struct tTextList * next;
+    uint16_t size;
+    uint16_t position;
+} tTextListHeader;
+
+typedef struct tTextList {
+    tTextListHeader header;
+    char text[1];
+} tTextList;
+
+typedef struct tGlobals {
+    BOOLEAN ndaActive;
+    BOOLEAN tcpipStarted;
+    BOOLEAN networkConnected;
+    BOOLEAN hasListenIpid;
+    BOOLEAN hasConnIpid;
+    GrafPortPtr winPtr;
+    tListenState state;
+    Word listenIpid;
+    Word connIpid;
+    Word position;
+    tTextList * textListHead;
+    tTextList * textListTail;
+    tMessageHeader messageHeader;
+    tTextList * textTransfer;
+    char line1[WINDOW_CHAR_WIDTH];
+    char line2[WINDOW_CHAR_WIDTH];
+    char line3[WINDOW_CHAR_WIDTH];
+} tGlobals;
+
+typedef void (*tStateHandler)(void);
+
+
+// Forward declarations
+
+void handleStartState(void);
+void handleNetworkUnconnectedState(void);
+void handleNetworkConnectedState(void);
+void handleAwaitingConnectionState(void);
+void handleAwaitingMsgHeaderState(void);
+void handleErrorState(void);
+
+
+// Globals
+
+static tGlobals * globals = NULL;
 static unsigned int userId;
+static tStateHandler stateHandlers[NUM_LISTEN_STATES] = {
+    handleStartState,
+    handleNetworkUnconnectedState,
+    handleNetworkConnectedState,
+    handleAwaitingConnectionState,
+    handleAwaitingMsgHeaderState,
+    
+    handleErrorState,
+};
+static char * stateMessages[NUM_LISTEN_STATES] = {
+    "Starting network tools",
+    "Connecting to network",
+    "Creating listen socket",
+    "Waiting for connection",
+    "Connected to device",
+    
+    ""
+};
 
-static char line1[50];
-static char line2[50];
-static char line3[50];
 
+// Implementation
 
 void NDAClose(void)
 {
-    if (ndaActive) {
-        CloseWindow(winPtr);
-        winPtr = NULL;
-        ndaActive = FALSE;
+    if ((globals != NULL) &&
+        (globals->ndaActive)) {
+        CloseWindow(globals->winPtr);
+        globals->winPtr = NULL;
+        globals->ndaActive = FALSE;
     }
     
     ResourceShutDown();
+}
+
+
+void freeGlobals(void)
+{
+    tTextList * textList = globals->textListHead;
+    
+    if (globals->textTransfer != NULL)
+        free(globals->textTransfer);
+    
+    while (textList != NULL) {
+        tTextList * prev = textList;
+        textList = textList->header.next;
+        free(prev);
+    }
+    
+    free(globals);
+    globals = NULL;
+}
+
+
+void teardownNetwork(void)
+{
+    if (globals->hasConnIpid) {
+        TCPIPAbortTCP(globals->connIpid);
+        TCPIPLogout(globals->connIpid);
+    }
+    globals->hasConnIpid = FALSE;
+    
+    if (globals->hasListenIpid) {
+        TCPIPCloseTCP(globals->listenIpid);
+        TCPIPLogout(globals->listenIpid);
+    }
+    globals->hasListenIpid = FALSE;
+    
+    if (globals->networkConnected)
+        TCPIPDisconnect(TRUE, NULL);
+    globals->networkConnected = FALSE;
+    
+    if (globals->tcpipStarted)
+        TCPIPShutDown();
+    globals->tcpipStarted = FALSE;
 }
 
 
@@ -54,16 +192,31 @@ void NDAInit(int code)
     /* When code is 1, this is tool startup, otherwise tool
      * shutdown.
      */
-    strcpy(line1, "Hello, world!");
-    strcpy(line2, "Hello, world!");
-    strcpy(line3, "Hello, world!");
     if (code) {
-        ndaActive = FALSE;
         userId = MMStartUp();
+        globals = malloc(sizeof(*globals));
+        memset(globals, 0, sizeof(*globals));
     } else {
-        if (ndaActive)
+        if ((globals != NULL) &&
+            (globals->ndaActive)) {
             NDAClose();
+            teardownNetwork();
+            freeGlobals();
+        }
     }
+}
+
+
+void InvalidateWindow(void)
+{
+    Rect frame;
+    SetPort(globals->winPtr);
+    GetPortRect(&frame);
+    frame.v2 -= frame.v1;
+    frame.h2 -= frame.h1;
+    frame.h1 = 0;
+    frame.v1 = 0;
+    InvalRect(&frame);
 }
 
 
@@ -80,11 +233,11 @@ void DrawContents(void)
     
     PenNormal();
     MoveTo(7,10);
-    DrawCString(line1);
+    DrawCString(globals->line1);
     MoveTo(7,20);
-    DrawCString(line2);
+    DrawCString(globals->line2);
     MoveTo(7,30);
-    DrawCString(line3);
+    DrawCString(globals->line3);
 }
 #pragma databank 0
 
@@ -97,7 +250,7 @@ GrafPortPtr NDAOpen(void)
     SysPrefsRecGS prefsDCB;
     unsigned int oldPrefs;
     
-    if (ndaActive)
+    if (globals->ndaActive)
         return NULL;
     
     levelDCB.pCount = 2;
@@ -114,13 +267,13 @@ GrafPortPtr NDAOpen(void)
     
     oldResourceApp = OpenResourceFileByID(readEnable, userId);
     
-    winPtr = NewWindow2("\p Listener ", 0, DrawContents, NULL, 0x02, windowRes, rWindParam1);
+    globals->winPtr = NewWindow2("\p Listener ", 0, DrawContents, NULL, 0x02, windowRes, rWindParam1);
     
-    SetSysWindow(winPtr);
-    ShowWindow(winPtr);
-    SelectWindow(winPtr);
+    SetSysWindow(globals->winPtr);
+    ShowWindow(globals->winPtr);
+    SelectWindow(globals->winPtr);
     
-    ndaActive = TRUE;
+    globals->ndaActive = TRUE;
     
     prefsDCB.preferences = oldPrefs;
     SetSysPrefsGS(&prefsDCB);
@@ -130,25 +283,181 @@ GrafPortPtr NDAOpen(void)
     
     SetCurResourceApp(oldResourceApp);
     
-    return winPtr;
+    return globals->winPtr;
+}
+
+
+void enterErrorState(char * errorString, Word errorCode)
+{
+    strcpy(globals->line1, errorString);
+    sprintf(globals->line2, "  Error code = $%04x", errorCode);
+    InvalidateWindow();
+    teardownNetwork();
+    globals->state = LISTEN_STATE_ERROR;
+}
+
+
+void newState(tListenState state)
+{
+    strcpy(globals->line1, stateMessages[state]);
+    InvalidateWindow();
+    globals->state = state;
+}
+
+
+void handleStartState(void)
+{
+    LoadOneTool(54, 0x200);     // Load Marinetti
+    if (toolerror()) {
+        enterErrorState("Unable to load Marinetti", toolerror());
+        return;
+    }
+    
+    if (!TCPIPStatus()) {
+        TCPIPStartUp();
+        if (toolerror()) {
+            enterErrorState("Unable to start Marinetti", toolerror());
+            return;
+        }
+        globals->tcpipStarted = TRUE;
+    }
+    
+    if (TCPIPGetConnectStatus()) {
+        newState(LISTEN_STATE_NETWORK_CONNECTED);
+    } else {
+        newState(LISTEN_STATE_NETWORK_UNCONNECTED);
+    }
+
+}
+
+
+void handleNetworkUnconnectedState(void)
+{
+    TCPIPConnect(NULL);
+    if ((!toolerror()) &&
+        (TCPIPGetConnectStatus())) {
+        globals->networkConnected = TRUE;
+        newState(LISTEN_STATE_NETWORK_CONNECTED);
+    } else {
+        enterErrorState("Unable to connect to network", toolerror());
+    }
+}
+
+
+void handleNetworkConnectedState(void)
+{
+    Word error;
+    
+    globals->listenIpid = TCPIPLogin(userId, 0, LISTEN_PORT, 0, 64);
+    if (toolerror()) {
+        enterErrorState("Unable to create socket", toolerror());
+        return;
+    }
+    
+    error = TCPIPListenTCP(globals->listenIpid);
+    if (error != terrOK) {
+        TCPIPLogout(globals->listenIpid);
+        enterErrorState("Unable to listen on socket", error);
+        return;
+    }
+    globals->hasListenIpid = TRUE;
+    newState(LISTEN_STATE_AWAITING_CONNECTION);
+}
+
+
+void handleAwaitingConnectionState(void)
+{
+    globals->connIpid = TCPIPAcceptTCP(globals->listenIpid, 0);
+    switch (toolerror()) {
+        case terrOK:
+            globals->hasConnIpid = TRUE;
+            newState(LISTEN_STATE_AWAITING_MSG_HEADER);
+            globals->position = 0;
+            break;
+            
+        case terrNOINCOMING:
+            break;
+            
+        default:
+            enterErrorState("Unable to accept connection", toolerror());
+            break;
+    }
+}
+
+
+void handleAwaitingMsgHeaderState(void)
+{
+    rrBuff readResponseBuf;
+    Word error = TCPIPReadTCP(globals->connIpid, 0,
+                              ((uint32_t)(&(globals->messageHeader))) + globals->position,
+                              sizeof(globals->messageHeader) - globals->position,
+                              &readResponseBuf);
+    if (error != tcperrOK) {
+        enterErrorState("Unable to read from connection", error);
+        return;
+    }
+    
+    globals->position += readResponseBuf.rrBuffCount;
+    if (globals->position < sizeof(globals->messageHeader))
+        return;
+    
+    switch (globals->messageHeader.messageType) {
+        case LISTEN_STATE_MSG:
+            if (globals->messageHeader.messageArg)
+                strcpy(globals->line2, "  Listening...");
+            else
+                strcpy(globals->line2, "");
+            InvalidateWindow();
+            break;
+        
+        case LISTEN_TEXT_MSG:
+            // TODO - Transition to a new state when getting text
+            break;
+            
+        default:
+            enterErrorState("Unexpected message type", globals->messageHeader.messageType);
+    }
+}
+
+
+void handleErrorState(void)
+{
+    // Do nothing.  Once we have entered the error state, then nothing more to do.
+}
+
+
+void runStateMachine(void)
+{
+    TCPIPPoll();
+    stateHandlers[globals->state]();
+}
+
+
+void sendKey(void)
+{
+    tTextList * textList = globals->textListHead;
+    
+    PostEvent(keyDownEvt, 0x00C00000 | textList->text[textList->header.position]);
+    textList->header.position++;
+    if (textList->header.position < textList->header.size)
+        return;
+    
+    if (textList == globals->textListTail)
+        globals->textListTail = NULL;
+    
+    globals->textListHead = textList->header.next;
+    free(textList);
 }
 
 
 void HandleRun(void)
 {
-    static BOOLEAN keySent = FALSE;
-    
-    if (winPtr == NULL)
+    if (globals == NULL)
         return;
     
-    if (winPtr == FrontWindow())
-        return;
-    
-    if (keySent)
-        return;
-    
-    PostEvent(keyDownEvt, 0x00C0004A);
-    keySent = TRUE;
+    runStateMachine();
+    if (globals->textListHead != NULL)
+        sendKey();
 }
 
 
@@ -157,27 +466,16 @@ void HandleControl(EventRecord *event)
 }
 
 
-void InvalidateWindow(void)
-{
-    Rect frame;
-    SetPort(winPtr);
-    GetPortRect(&frame);
-    frame.v2 -= frame.v1;
-    frame.h2 -= frame.h1;
-    frame.h1 = 0;
-    frame.v1 = 0;
-    InvalRect(&frame);
-}
-
-
 void HandleKey(EventRecord *event)
 {
-    if (winPtr != NULL) {
-        sprintf(line1, "what = $%X", event->what);
-        sprintf(line2, "message = $%lX", event->message);
-        sprintf(line3, "modifiers = $%X", event->modifiers);
+#if 0
+    if (globals->winPtr != NULL) {
+        sprintf(globals->line1, "what = $%X", event->what);
+        sprintf(globals->line2, "message = $%lX", event->message);
+        sprintf(globals->line3, "modifiers = $%X", event->modifiers);
         InvalidateWindow();
     }
+#endif
 }
 
 
@@ -208,9 +506,9 @@ BOOLEAN NDAAction(EventRecord *sysEvent, int code)
             eventCode = TaskMasterDA(0, &localEvent);
             switch(eventCode) {
                 case updateEvt:
-                    BeginUpdate(winPtr);
+                    BeginUpdate(globals->winPtr);
                     DrawContents();
-                    EndUpdate(winPtr);
+                    EndUpdate(globals->winPtr);
                     break;
                     
                 case wInControl:
