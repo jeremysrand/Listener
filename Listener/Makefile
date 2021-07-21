@@ -86,7 +86,7 @@ LDFLAGS+=
 # write your documentation in markdown in your project and at build time,
 # that documentation is converted to a format that is good to package with
 # your software and can be opened on a GS.
-MD_SRCS=
+MD_SRCS=Readme.md
 
 # If you want to copy one or more files or directories to the distribution disk
 # image, add the root directory to this variable.  Any directories under

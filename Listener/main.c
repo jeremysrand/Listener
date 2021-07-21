@@ -8,7 +8,7 @@
  */
 
 
-#pragma nda NDAOpen NDAClose NDAAction NDAInit 5 0x03FF "  Listener\\H**"
+#pragma nda NDAOpen NDAClose NDAAction NDAInit 2 0x03FF "  Listener\\H**"
 
 
 #include <orca.h>

@@ -76,6 +76,7 @@
 		9D5155DD26A1EDA60075EBC7 /* system601_net.2mg */ = {isa = PBXFileReference; lastKnownFileType = file; path = system601_net.2mg; sourceTree = "<group>"; };
 		9D51562026A1F0C60075EBC7 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		9D51562926A1F16F0075EBC7 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		9D5156A426A8C8B30075EBC7 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -117,6 +118,7 @@
 				9D5155A726A1ED510075EBC7 /* main.h */,
 				9D5155A826A1ED510075EBC7 /* main.rez */,
 				9D5155AA26A1ED510075EBC7 /* Makefile */,
+				9D5156A426A8C8B30075EBC7 /* Readme.md */,
 				9D5155AC26A1ED510075EBC7 /* make */,
 				9D5155C526A1ED510075EBC7 /* Supporting Files */,
 			);
