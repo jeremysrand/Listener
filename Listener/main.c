@@ -37,6 +37,7 @@
 
 #define LISTEN_STATE_MSG 1
 #define LISTEN_TEXT_MSG 2
+#define LISTEN_SEND_MORE 3
 
 #define WINDOW_CHAR_WIDTH 50
 
@@ -568,6 +569,14 @@ void sendKey(void)
     
     globals->textListHead = textList->header.next;
     free(textList);
+    
+    // If there is no more text to type, let the other end know we are ready for more.
+    if ((globals->textListHead == NULL) &&
+        ((globals->state == LISTEN_STATE_AWAITING_TEXT) ||
+         (globals->state == LISTEN_STATE_AWAITING_MSG_HEADER))) {
+        uint16_t msg = LISTEN_SEND_MORE;
+        TCPIPWriteTCP(globals->connIpid, (Pointer)&msg, sizeof(msg), FALSE, FALSE);
+    }
 }
 
 
@@ -589,14 +598,6 @@ void HandleControl(EventRecord *event)
 
 void HandleKey(EventRecord *event)
 {
-#if 0
-    if (globals->winPtr != NULL) {
-        sprintf(globals->line1, "what = $%X", event->what);
-        sprintf(globals->line2, "message = $%lX", event->message);
-        sprintf(globals->line3, "modifiers = $%X", event->modifiers);
-        InvalidateWindow();
-    }
-#endif
 }
 
 
