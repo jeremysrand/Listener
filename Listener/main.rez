@@ -15,14 +15,14 @@
 resource rVersion (1) {
     {
         0,          /* Major version number in BCD */
-        1,          /* Minor version number in BCD */
+        9,          /* Minor version number in BCD */
         0,          /* Bug version number in BCD */
         development,/* Development phase */
         0           /* Release number */
     },
     verUS,
     "Listener",
-    "Copyright \$A9 2021 Jeremy Rand"
+    "Copyright \$A9 2022 Jeremy Rand"
 };
 
 
