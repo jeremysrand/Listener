@@ -43,3 +43,4 @@ There are a number of improvements to make:
 * The iOS app needs to be "good enough" to pass Apple's review process.
 * Perhaps a Siri shortcut so you can just tell your phone to dictate to your GS without even starting the ListenerApp.
 * Maybe a mode where instead of dictating text, you can dictate commands like "close window", "copy" and "paste" and the right standard commands are sent as key strokes.
+* Instead of injecting keyboard events through the Event Manager on the GS, look at injecting fake keypresses into ADB itself.  This should improve compatibility with applications that do not get their key events from the Event Manager.  Based on what I have read, the SendInfo toolbox routine with the keyCode command should be able to do this.  It should be possible based on what things like Video Keyboard does in the System 6.0.1 distribution.
