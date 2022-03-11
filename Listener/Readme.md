@@ -16,9 +16,9 @@ If you have networking up and running and working in apps like Webber:
 
 https://speccie.uk/software/webber/
 
-then Listener should also work.
+then Listener should also work.  If you are trying to use Listener on an emulator, see the section below about issues with emulators.
 
-You need an iOS device running 14.4 or newer.  And you need to have the ListenerApp:
+You need an iOS device running 14.4+ or a Mac running macOS v11.3+.  And you need to have the ListenerApp:
 
 https://github.com/jeremysrand/ListenerApp
 
@@ -35,6 +35,20 @@ Start the ListenerApp on your iOS device.  At the top of the screen is a text bo
 Make sure your document window is on top on your GS and press the "Listen" button in the iOS app.  The button will turn red to indicate that your device is listening to you.  Also, the desk accessory on the GS will say "Listening...".
 
 Start speaking.  Best to speak slowly and clearly to get the best results.  Voice transcription is only as good (bad?) as your iOS can do normally.  You should see the text appearing in your document window on your GS.
+
+## Emulators
+
+In theory, this NDA should work on any GS emulator that supports networking.  In practice unfortunately, that is not true.  The reason is that the NDA needs to be reachable by IP address from your modern device.  Emulators usually have a "fake" IP address for the GS and your iPhone won't be able to reach that address.  Your iPhone may be able to communicate with the Mac or PC that is running the emulator but the GS is often behind some kind of network address translation (NAT).  With NAT, your GS can general make connections out to other devices on the network but other devices on the network cannot make connections to your GS.  And given how Listener works, the modern device must connect to the GS.
+
+However, I was able to make this work using mame/Ample.  The first thing I did is go the Apple Menu > Control Panel in the emulated GS and scroll down the TCP/IP control panel.  Inside TCP/IP, I clicked the "Connect to network" button and then clicked on "Disconnect from network".  I did this just to ensure that Marinetti has gotten its IP address.  Then, I click on "Setup connection..." and then "Configure...".  Inside the dialog that appears, you will see your IP address.  Mine is 192.168.64.5.  Make a note of this.
+
+You also need the IP address of your Mac where the emulator is running.  I will not describe how to find that but I know mine is 192.168.1.2.  Also, you will need to have "Remote Login" enabled in Sharing inside of System Preferences for this to work.  With all this in place, I run this command from a Terminal:
+
+```
+ssh -L 192.168.1.2:19026:192.168.64.5:19026 localhost
+```
+
+Make sure to replace the two IP addresses with the correct IP addresses for your situation.  You will likely be asked for your password and you should enter that.  You should find you are back at a shell.  For as long as this shell is open, you will also be forwarding traffic that arrives at port 19026 on your Mac to 19026 on your GS emulator.  That port number is the port number that Listener uses.  In my testing, I was able to get Listener to work in mame/Ample with this tunnel.  Once you are done, you should exit from the shell you started with ssh.
 
 ## Future Improvements
 
