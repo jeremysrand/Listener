@@ -484,6 +484,8 @@ void handleAwaitingMsgHeaderState(void)
             textTransfer->header.size = globals->messageHeader.messageArg;
             textTransfer->header.position = 0;
             newState(LISTEN_STATE_AWAITING_TEXT);
+            if (FrontWindow() == globals->winPtr)
+                SendBehind((GrafPortPtr)toBottom, globals->winPtr);
             break;
             
         default:
