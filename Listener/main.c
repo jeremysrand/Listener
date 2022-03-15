@@ -141,44 +141,41 @@ static char * stateMessages[NUM_LISTEN_STATES] = {
 
 // Implementation
 
-void NDAClose(void)
+void delayToNextTick()
 {
-    if ((globals != NULL) &&
-        (globals->ndaActive)) {
-        CloseWindow(globals->winPtr);
-        globals->winPtr = NULL;
-        globals->ndaActive = FALSE;
-    }
-    
-    ResourceShutDown();
+    LongWord oldTickCounter = GetTick();
+    while (oldTickCounter == GetTick())
+        ;
 }
 
 
-void freeGlobals(void)
+void closeConnection(void)
 {
-    tTextList * textList = globals->textListHead;
+    static srBuff srBuffer;
+    int counter;
     
-    if (globals->textTransfer != NULL)
-        free(globals->textTransfer);
-    
-    while (textList != NULL) {
-        tTextList * prev = textList;
-        textList = textList->header.next;
-        free(prev);
-    }
-    
-    free(globals);
-    globals = NULL;
-}
-
-
-void teardownNetwork(void)
-{
     if (globals->hasConnIpid) {
-        TCPIPAbortTCP(globals->connIpid);
+        TCPIPCloseTCP(globals->connIpid);
+        for (counter = 0; counter < 20; counter++)
+        {
+            TCPIPPoll();
+            delayToNextTick();
+            TCPIPStatusTCP(globals->connIpid, &srBuffer);
+            if ((srBuffer.srState == TCPSCLOSED) ||
+                (srBuffer.srState == TCPSTIMEWAIT))
+                break;
+        }
+        if ((srBuffer.srState != TCPSCLOSED) &
+            (srBuffer.srState != TCPSTIMEWAIT))
+            TCPIPAbortTCP(globals->connIpid);
         TCPIPLogout(globals->connIpid);
     }
     globals->hasConnIpid = FALSE;
+}
+
+void teardownNetwork(void)
+{
+    closeConnection();
     
     if (globals->hasListenIpid) {
         TCPIPCloseTCP(globals->listenIpid);
@@ -193,6 +190,45 @@ void teardownNetwork(void)
     if (globals->tcpipStarted)
         TCPIPShutDown();
     globals->tcpipStarted = FALSE;
+}
+
+
+void freeText(void)
+{
+    tTextList * textList = globals->textListHead;
+    
+    if (globals->textTransfer != NULL)
+        free(globals->textTransfer);
+    
+    while (textList != NULL) {
+        tTextList * prev = textList;
+        textList = textList->header.next;
+        free(prev);
+    }
+}
+
+void NDAClose(void)
+{
+    if ((globals != NULL) &&
+        (globals->ndaActive)) {
+        CloseWindow(globals->winPtr);
+        globals->winPtr = NULL;
+        globals->ndaActive = FALSE;
+    }
+    
+    teardownNetwork();
+    ResourceShutDown();
+    freeText();
+    memset(globals, 0, sizeof(*globals));
+}
+
+
+void freeGlobals(void)
+{
+    freeText();
+    
+    free(globals);
+    globals = NULL;
 }
 
 
@@ -444,9 +480,7 @@ void handleAwaitingMsgHeaderState(void)
         return;
     }
     if (srBuffer.srState != TCPSESTABLISHED) {
-        TCPIPAbortTCP(globals->connIpid);
-        TCPIPLogout(globals->connIpid);
-        globals->hasConnIpid = FALSE;
+        closeConnection();
         newState(LISTEN_STATE_AWAITING_CONNECTION);
         return;
     }
@@ -507,9 +541,7 @@ void handleAwaitingTextState(void)
         return;
     }
     if (srBuffer.srState != TCPSESTABLISHED) {
-        TCPIPAbortTCP(globals->connIpid);
-        TCPIPLogout(globals->connIpid);
-        globals->hasConnIpid = FALSE;
+        closeConnection();
         newState(LISTEN_STATE_AWAITING_CONNECTION);
         return;
     }
@@ -556,8 +588,13 @@ void runStateMachine(void)
 
 void sendKey(void)
 {
-    tTextList * textList = globals->textListHead;
+    EventRecord eventRecord;
     
+    // If there is still a key down waiting to be processed, then don't send another one.
+    if (EventAvail(keyDownMask, &eventRecord))
+        return;
+    
+    tTextList * textList = globals->textListHead;
     PostEvent(keyDownEvt, 0x00C00000 | textList->text[textList->header.position]);
     textList->header.position++;
     if (textList->header.position < textList->header.size)
