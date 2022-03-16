@@ -460,7 +460,8 @@ void handleAwaitingEstablishState(void)
             break;
             
         default:
-            enterErrorState("Unexpected TCP state", srBuffer.srState);
+            closeConnection();
+            newState(LISTEN_STATE_AWAITING_CONNECTION);
             break;
     }
 }
