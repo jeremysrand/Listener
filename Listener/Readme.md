@@ -26,15 +26,13 @@ At the moment, I don't have a good solution for distributing this app but I am l
 
 ## Usage
 
-Once you have all of the pieces, you should launch the application you want to dictate into on the GS.  An application like Teach is a good option.  It needs to be a GUI application and support new desk accessories.
+Once you have the software installed and configured on your Apple IIGS, you should launch an desktop application that accepts text.  The Teach application is an example of an application that would work.  Make sure there is a window open which you can type into and then open the Listener NDA from under the Apple menu.  The Listener NDA window will say it is waiting for a connection.
 
-Start the Listener new desk accessory.  You should find it says "Waiting for connection".  Make sure your application window is the frontmost window.  The Listener window must be open but it doesn't need to be the top window nor even visible.  If it is topmost, any text heard will be sent to the Listener window and it doesn't do anything with keystrokes so you don't want that.
+In the iOS/macOS app, tap the "+" button and enter the IP address or hostname of your Apple IIGS.  You can enter multiple IP addresses and hostnames if you have multiple machines.  Your destinations are synced through iCloud so if you have multiple modern devices, you should find the IP addresses are mirrored to those other devices.
 
-Start the ListenerApp on your iOS device.  At the top of the screen is a text box where you need to enter the IP address of your Apple IIgs.  Once you have typed it in and pressed enter, the iOS device will attempt to connect to the GS.  You should see the Listener desk accessary now says "Connected to device".
+Select one of these destinations and tap the "Connect" button to bring up a network connection to your Apple IIGS.  On the GS, you should find the NDA window also indicates that the connection is up.  Then tap the "Listen and Send Text" button.  Speak clearly and you should find that your words are typed into the window on your GS.  If the NDA window was top-most when you started speaking, you should find that it goes to the back.
 
-Make sure your document window is on top on your GS and press the "Listen" button in the iOS app.  The button will turn red to indicate that your device is listening to you.  Also, the desk accessory on the GS will say "Listening...".
-
-Start speaking.  Best to speak slowly and clearly to get the best results.  Voice transcription is only as good (bad?) as your iOS can do normally.  You should see the text appearing in your document window on your GS.
+Tap "Stop Listening" when you want to stop entering text through speech and "Disconnect" when you are done using the app.
 
 ## Emulators
 
