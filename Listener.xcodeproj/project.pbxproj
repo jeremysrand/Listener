@@ -52,6 +52,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		9D2ABA2827E3DB0400F40856 /* Protocol.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Protocol.md; sourceTree = "<group>"; };
 		9D51559926A1ED510075EBC7 /* Listener */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Listener; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D51559C26A1ED510075EBC7 /* Listener.2mg */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Listener.2mg; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D51559E26A1ED510075EBC7 /* Listener.shk */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Listener.shk; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -119,6 +120,7 @@
 				9D5155A826A1ED510075EBC7 /* main.rez */,
 				9D5155AA26A1ED510075EBC7 /* Makefile */,
 				9D5156A426A8C8B30075EBC7 /* Readme.md */,
+				9D2ABA2827E3DB0400F40856 /* Protocol.md */,
 				9D5155AC26A1ED510075EBC7 /* make */,
 				9D5155C526A1ED510075EBC7 /* Supporting Files */,
 			);

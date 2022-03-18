@@ -126,11 +126,13 @@ static tStateHandler stateHandlers[NUM_LISTEN_STATES] = {
     
     handleErrorState,
 };
+
+static char waitingMessage[48] = "Waiting for connection";
 static char * stateMessages[NUM_LISTEN_STATES] = {
     "Starting network tools",
     "Connecting to network",
     "Creating listen socket",
-    "Waiting for connection",
+    waitingMessage,
     "Establishing connection",
     "Connected to device",
     "Receiving text",
@@ -395,6 +397,15 @@ void handleNetworkConnectedState(void)
     Word error;
     
     TCPIPPoll();
+    
+    Long ipAddress = TCPIPGetMyIPAddress();
+    if (!toolerror()) {
+        strcpy(waitingMessage, "Waiting for connection at ");
+        TCPIPConvertIPToCASCII(ipAddress, &(waitingMessage[26]), 0);
+    } else {
+        strcpy(waitingMessage, "Waiting for connection");
+    }
+    
     globals->listenIpid = TCPIPLogin(userId, 0, 0, 0, 64);
     if (toolerror()) {
         enterErrorState("Unable to create socket", toolerror());
