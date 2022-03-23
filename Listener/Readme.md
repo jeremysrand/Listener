@@ -28,7 +28,7 @@ At the moment, I don't have a good solution for distributing this app but I am l
 
 Once you have the software installed and configured on your Apple IIGS, you should launch an desktop application that accepts text.  The Teach application is an example of an application that would work.  Make sure there is a window open which you can type into and then open the Listener NDA from under the Apple menu.  The Listener NDA window will say it is waiting for a connection.
 
-In the iOS/macOS app, tap the "+" button and enter the IP address or hostname of your Apple IIGS.  You can enter multiple IP addresses and hostnames if you have multiple machines.  Your destinations are synced through iCloud so if you have multiple modern devices, you should find the IP addresses are mirrored to those other devices.
+In the iOS/macOS app, tap the "+" button (if you are on an iPad in portrait orientation, you may need to tap a "&lt; GS Destinations" button to reveal the side bar and the "+" button) and enter the IP address or hostname of your Apple IIGS.  You can enter multiple IP addresses and hostnames if you have multiple machines.  Your destinations are synced through iCloud so if you have multiple modern devices, you should find the IP addresses are mirrored to those other devices.
 
 Select one of these destinations and tap the "Connect" button to bring up a network connection to your Apple IIGS.  On the GS, you should find the NDA window also indicates that the connection is up.  Then tap the "Listen and Send Text" button.  Speak clearly and you should find that your words are typed into the window on your GS.  If the NDA window was top-most when you started speaking, you should find that it goes to the back.
 
