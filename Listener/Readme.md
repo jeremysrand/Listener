@@ -48,6 +48,23 @@ ssh -L 192.168.1.2:19026:192.168.64.5:19026 localhost
 
 Make sure to replace the two IP addresses with the correct IP addresses for your situation.  You will likely be asked for your password and you should enter that.  You should find you are back at a shell.  For as long as this shell is open, you will also be forwarding traffic that arrives at port 19026 on your Mac to 19026 on your GS emulator.  That port number is the port number that Listener uses.  In my testing, I was able to get Listener to work in mame/Ample with this tunnel.  Once you are done, you should exit from the shell you started with ssh.
 
+## Compatibility
+
+Listener should work with any desktop application that supports NDAs and accepts text input.  I have tested the following applications and they seem to work well:
+
+* Teach
+* AppleWorks GS (pretty slow though)
+* EGOed
+* Hermes
+* coolwriter
+* Lost Treasures of Infocom (although once you say "new line", the recognizer cannot change its mind anymore and edit previous text)
+* HyperCard IIGS (although it can be hard to send the NDA to the background)
+* DeluxeWrite
+* Medley (very slow)
+* GraphicWriter
+* ORCA Prism (although I doubt you could dictate code)
+* TMLPascal (again, not sure you can code this way)
+
 ## Future Improvements
 
 There are a number of improvements to make:
