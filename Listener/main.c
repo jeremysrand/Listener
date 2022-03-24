@@ -494,6 +494,7 @@ void handleAwaitingMsgHeaderState(void)
     if (srBuffer.srState != TCPSESTABLISHED) {
         closeConnection();
         newState(LISTEN_STATE_AWAITING_CONNECTION);
+        globals->line2[0] = '\0';
         return;
     }
     Word error = TCPIPReadTCP(globals->connIpid, 0,
@@ -555,6 +556,7 @@ void handleAwaitingTextState(void)
     if (srBuffer.srState != TCPSESTABLISHED) {
         closeConnection();
         newState(LISTEN_STATE_AWAITING_CONNECTION);
+        globals->line2[0] = '\0';
         return;
     }
     
