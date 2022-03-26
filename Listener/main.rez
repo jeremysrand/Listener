@@ -26,6 +26,52 @@ resource rVersion (1) {
 };
 
 
+/* Update info */
+#define rUpdateInfo $DEAD  /* RIP Jerry Garcia */
+/*--------------------- rUpdateInfo -------------------------*/
+type rUpdateInfo {
+    integer = 0;            /* version must be zero */
+    longint;                /* Resource ID of string holding app's display name */
+    longint;                /* ID of string holding author's name */
+    longint;                /* ID of string URL to the downloads folder */
+    longint;                /* ID of string for downloadable archive name */
+    longint;                /* ID of string for Versions.List data file */
+};
+
+
+resource rPString (DISPLAY_NAME_STR, $0000) {
+    "Listener"
+};
+
+
+resource rPString (AUTHOR_NAME_STR, $0000) {
+    "Jeremy Rand"
+};
+
+
+resource rPString (DOWNLOAD_URL_STR, $0000) {
+    "http://downloads.rand-emonium.com/files/"
+};
+
+
+resource rPString (ARCHIVE_STR, $0000) {
+    "Listener092.shk"
+};
+
+
+resource rPString (VERSIONS_DATA_FILE_STR, $0000) {
+    "jrand"
+};
+
+
+resource rUpdateInfo (UPDATE_INFO, $0000) {
+    DISPLAY_NAME_STR,        // app's display name
+    AUTHOR_NAME_STR,         // author's name
+    DOWNLOAD_URL_STR,        // URL to downloads folder
+    ARCHIVE_STR,             // Name of downloadable archive
+    VERSIONS_DATA_FILE_STR   // Name of data file for Versions.List
+};
+
 resource rWindParam1 (windowRes) {
     $C0A5,                      /* wFrameBits */
     nil,                        /* wTitle */
