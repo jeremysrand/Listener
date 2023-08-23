@@ -143,7 +143,7 @@ static char * stateMessages[NUM_LISTEN_STATES] = {
 
 // Implementation
 
-void delayToNextTick()
+void delayToNextTick(void)
 {
     LongWord oldTickCounter = GetTick();
     while (oldTickCounter == GetTick())
@@ -195,7 +195,7 @@ void teardownNetwork(void)
 }
 
 
-void freeText(void)
+void freeMemory(void)
 {
     tTextList * textList = globals->textListHead;
     
@@ -207,30 +207,25 @@ void freeText(void)
         textList = textList->header.next;
         free(prev);
     }
+    
+    free(globals);
+    globals = NULL;
 }
 
 void NDAClose(void)
 {
-    if ((globals != NULL) &&
-        (globals->ndaActive)) {
+    if (globals == NULL)
+        return;
+    
+    if (globals->ndaActive) {
         CloseWindow(globals->winPtr);
         globals->winPtr = NULL;
         globals->ndaActive = FALSE;
+        ResourceShutDown();
     }
     
     teardownNetwork();
-    ResourceShutDown();
-    freeText();
-    memset(globals, 0, sizeof(*globals));
-}
-
-
-void freeGlobals(void)
-{
-    freeText();
-    
-    free(globals);
-    globals = NULL;
+    freeMemory();
 }
 
 
@@ -241,15 +236,6 @@ void NDAInit(int code)
      */
     if (code) {
         userId = MMStartUp();
-        globals = malloc(sizeof(*globals));
-        memset(globals, 0, sizeof(*globals));
-    } else {
-        if ((globals != NULL) &&
-            (globals->ndaActive)) {
-            NDAClose();
-            teardownNetwork();
-            freeGlobals();
-        }
     }
 }
 
@@ -297,6 +283,11 @@ GrafPortPtr NDAOpen(void)
     SysPrefsRecGS prefsDCB;
     unsigned int oldPrefs;
     
+    if (globals == NULL) {
+        globals = malloc(sizeof(*globals));
+        memset(globals, 0, sizeof(*globals));
+    }
+    
     if (globals->ndaActive)
         return NULL;
     
@@ -314,7 +305,7 @@ GrafPortPtr NDAOpen(void)
     
     oldResourceApp = OpenResourceFileByID(readEnable, userId);
     
-    globals->winPtr = NewWindow2("\p Listener ", 0, DrawContents, NULL, 0x02, windowRes, rWindParam1);
+    globals->winPtr = NewWindow2((Pointer)"\p Listener ", 0, DrawContents, NULL, 0x02, windowRes, rWindParam1);
     
     SetSysWindow(globals->winPtr);
     ShowWindow(globals->winPtr);
@@ -669,6 +660,9 @@ BOOLEAN NDAAction(EventRecord *sysEvent, int code)
     static EventRecord localEvent;
     unsigned int eventCode;
     BOOLEAN result = FALSE;
+    
+    if (globals == NULL)
+        return result;
     
     switch (code) {
         case runAction:
