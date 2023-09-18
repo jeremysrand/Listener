@@ -24,6 +24,7 @@
 #include <locator.h>
 #include <tcpip.h>
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
